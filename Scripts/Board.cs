@@ -4,16 +4,23 @@ using UnityEngine.Tilemaps;
 
 public class Board : MonoBehaviour
 {
-    private int pieceCount = 5;
-    public Score gscore { get; private set; }
+    private int pieceCount = 1;
     public Tilemap tilemap { get; private set; }
     public List<Piece> activePiece { get; private set; }
     public Player activePlayer { get; private set; }
 
+    [SerializeField]
+    public GameObject pieceObject;
+    [SerializeField]
+    public GameObject playerObject;
+    [SerializeField]
     public SquareData[] Squares;
-    public Vector2Int boardSize = new Vector2Int(30, 20);
+    [SerializeField]
+    public Vector2Int boardSize;
+
+    private int defaultPieceSpawnY = 20;
     private List<Vector3Int> PiecespawnPosition = new List<Vector3Int>();
-    private Vector3Int PlayerspawnPosition = new Vector3Int(-1, -10, 0);
+    private Vector3Int PlayerspawnPosition = new Vector3Int(0, -10, -30);
 
     public RectInt Bounds 
     {
@@ -26,24 +33,19 @@ public class Board : MonoBehaviour
 
     private void Awake()
     {
-        gscore = new Score();
-        gscore.Initialize();
         tilemap = GetComponentInChildren<Tilemap>();
         activePiece = new List<Piece>();
         for (int i = 0; i < pieceCount; i++)
         {
-            GameObject a = new GameObject();
-            string name = "piece" + i;
-            a.name = name;
-            a.AddComponent(new Piece().GetType());
-            //Debug.Log("a");
+            GameObject a = Instantiate(pieceObject);
+            a.name = "piece" + i;
             activePiece.Add(a.GetComponent<Piece>());
-            PiecespawnPosition.Add(new Vector3Int(Random.Range(-10, 10), 8, 0));
-            activePiece[i].stepDelay = Random.Range(0.1f, 0.01f);
-            activePiece[i].lockDelay = 1f;
+            PiecespawnPosition.Add(new Vector3Int(Random.Range(-25, 25), defaultPieceSpawnY, -21));
         }
 
-        activePlayer = GetComponentInChildren<Player>();
+        GameObject p = Instantiate(playerObject);
+        p.name = "player";
+        activePlayer = p.GetComponent<Player>();
 
         for (int i = 0; i < Squares.Length; i++) {
             Squares[i].Initialize();
@@ -57,106 +59,61 @@ public class Board : MonoBehaviour
             SpawnPiece(p);
         }
 
-        SpawnPlayer();
+        SpawnPlayer(activePlayer);
+    }
+
+    public void spawnobject(TileObject tileObject, Vector3Int spawnpos)
+    {
+        if (IsValidPositionObject(tileObject, spawnpos))
+        {
+            setObject(tileObject);
+        }
     }
 
     public void SpawnPiece(Piece piece)
     {
-        //int random = Random.Range(0, Squares.Length);
-        SquareData data = Squares[1];
+        int random = Random.Range(1, Squares.Length);
+        SquareData data = Squares[random];
 
-        Vector3Int spawnpos = new Vector3Int(Random.Range(-10, 10), 8, 0);
+        //Vector3Int spawnpos = new Vector3Int(Random.Range(-25, 25), 10, 0);
+        Vector3Int spawnpos = new Vector3Int(0, 10, 0);
+        piece.stepDelay = Random.Range(0.1f, 0.01f);
         piece.Initialize(this, spawnpos, data);
 
-        if (IsValidPositionPiece(piece, spawnpos))
-        {
-            SetPiece(piece);
-        }
+        spawnobject(piece, spawnpos);
     }
 
-    public void SpawnPlayer()
+    public void SpawnPlayer(Player player)
     {
         //int random = Random.Range(0, Squares.Length);
         SquareData data = Squares[0];
 
-        activePlayer.Initialize(this, PlayerspawnPosition, data);
+        player.Initialize(this, PlayerspawnPosition, data);
 
-        if (IsValidPositionPlayer(activePlayer, PlayerspawnPosition))
+        spawnobject(player, PlayerspawnPosition);
+    }
+
+    public void setObject(TileObject tileObject)
+    {
+        for (int i = 0; i < tileObject.data.cells.Count; i++)
         {
-            Debug.Log("IsValidPosition called.");
-            SetPlayer(activePlayer);
+            Vector3Int tilePosition = tileObject.cells[i] + tileObject.position;
+            tilemap.SetTile(tilePosition, tileObject.data.tile[i]);
         }
     }
 
-    public void GameOver()
+    public void clearObject(TileObject tileObject)
     {
-        tilemap.ClearAllTiles();
-
-        // Do anything else you want on game over here..
-    }
-
-    public void SetPiece(Piece piece)
-    {
-        for (int i = 0; i < piece.data.cells.Count; i++)
+        for (int i = 0; i < tileObject.cells.Count; i++)
         {
-            Vector3Int tilePosition = piece.cells[i] + piece.position;
-            tilemap.SetTile(tilePosition, piece.data.tile[i]);
-        }
-    }
-
-    public void SetPlayer(Player player)
-    {
-        for (int i = 0; i < player.data.cells.Count; i++)
-        {
-            Vector3Int tilePosition = player.cells[i] + player.position;
-            tilemap.SetTile(tilePosition, player.data.tile[i]); 
-        }
-    }
-
-    public void PlayerCapturePiece(Piece piece, Player player)
-    {
-        //Debug.Log(gscore.score.score);
-        if (gscore.score >= gscore.maxScore) { return; }
-        Debug.Log("PLAYER");
-        if (IsPlayerExist(player, piece)) 
-        {
-            player.CapturePiece(player.data.cells.Count + piece.data.cells.Count, player.cells.Count + piece.cells.Count, piece);
-            Debug.Log("Piece Detected");
-
-            gscore.score += 1;
-        }
-        else
-        {
-            Debug.Log("Piece Not Detected");
-        }
-    }
-
-    public void ClearPiece(Piece piece)
-    {
-        //Debug.Log(piece);
-        for (int i = 0; i < piece.cells.Count; i++)
-        {
-            //Debug.Log(piece.cells[i]);
-            Vector3Int tilePosition = piece.cells[i] + piece.position;
-            tilemap.SetTile(tilePosition, null);
-            //Debug.Log(tilePosition);
-        }
-        //Debug.Log("------");
-    }
-
-    public void ClearPlayer(Player player)
-    {
-        for (int i = 0; i < player.cells.Count; i++)
-        {
-            Vector3Int tilePosition = player.cells[i] + player.position;
+            Vector3Int tilePosition = tileObject.cells[i] + tileObject.position;
             tilemap.SetTile(tilePosition, null);
         }
     }
 
-    public bool IsPlayerExist(Player player, Piece piece)
+    public bool isplayerExist(Piece piece)
     {
-        Debug.Log(piece.position + " " + player.position);
-        if ((piece.position.y <= player.position.y + 2))
+        if ((piece.position.Equals(activePlayer.position + new Vector3Int(0, 0, 0))))
         {
             return true;
         }
@@ -164,37 +121,25 @@ public class Board : MonoBehaviour
         return false;
     }
 
-    public bool IsValidPositionPiece(Piece piece, Vector3Int position)
+    public bool isRockBottom(Piece piece)
     {
-        RectInt bounds = Bounds;
-
-        // The position is only valid if every cell is valid
-        for (int i = 0; i < piece.cells.Count; i++)
+        Debug.Log(piece.position.y);
+        if (piece.position.y <= -boardSize.y / 2)
         {
-            Vector3Int tilePosition = piece.cells[i] + position;
-
-            // An out of bounds tile is invalid
-            if (!bounds.Contains((Vector2Int)tilePosition)) {
-                return false;
-            }
-
-            // A tile already occupies the position, thus invalid
-            if (tilemap.HasTile(tilePosition)) {
-                return false;
-            }
+            return true;
         }
 
-        return true;
+        return false;
     }
 
-    public bool IsValidPositionPlayer(Player player, Vector3Int position)
+    public bool IsValidPositionObject(TileObject tileObject, Vector3Int position)
     {
         RectInt bounds = Bounds;
 
         // The position is only valid if every cell is valid
-        for (int i = 0; i < player.cells.Count; i++)
+        for (int i = 0; i < tileObject.cells.Count; i++)
         {
-            Vector3Int tilePosition = player.cells[i] + position;
+            Vector3Int tilePosition = tileObject.cells[i] + position;
 
             // An out of bounds tile is invalid
             if (!bounds.Contains((Vector2Int)tilePosition))
@@ -211,69 +156,4 @@ public class Board : MonoBehaviour
 
         return true;
     }
-
-    public void ClearLines()
-    {
-        RectInt bounds = Bounds;
-        int row = bounds.yMin;
-
-        // Clear from bottom to top
-        while (row < bounds.yMax)
-        {
-            // Only advance to the next row if the current is not cleared
-            // because the tiles above will fall down when a row is cleared
-            if (IsLineFull(row)) {
-                LineClear(row);
-            } else {
-                row++;
-            }
-        }
-    }
-
-    //
-    public bool IsLineFull(int row)
-    {
-        RectInt bounds = Bounds;
-
-        for (int col = bounds.xMin; col < bounds.xMax; col++)
-        {
-            Vector3Int position = new Vector3Int(col, row, 0);
-
-            // The line is not full if a tile is missing
-            if (!tilemap.HasTile(position)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-
-    public void LineClear(int row)
-    {
-        RectInt bounds = Bounds;
-
-        // Clear all tiles in the row
-        for (int col = bounds.xMin; col < bounds.xMax; col++)
-        {
-            Vector3Int position = new Vector3Int(col, row, 0);
-            tilemap.SetTile(position, null);
-        }
-
-        // Shift every row above down one
-        while (row < bounds.yMax)
-        {
-            for (int col = bounds.xMin; col < bounds.xMax; col++)
-            {
-                Vector3Int position = new Vector3Int(col, row + 1, 0);
-                TileBase above = tilemap.GetTile(position);
-
-                position = new Vector3Int(col, row, 0);
-                tilemap.SetTile(position, above);
-            }
-
-            row++;
-        }
-    }
-
 }

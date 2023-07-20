@@ -48,20 +48,20 @@ public class Ghost : MonoBehaviour
         int current = position.y;
         int bottom = -mainBoard.boardSize.y / 2 - 1;
 
-        mainBoard.ClearPiece(trackingPiece);
+        mainBoard.clearObject(trackingPiece);
 
         for (int row = current; row >= bottom; row--)
         {
             position.y = row;
 
-            if (mainBoard.IsValidPositionPiece(trackingPiece, position)) {
+            if (mainBoard.IsValidPositionObject(trackingPiece, position)) {
                 this.position = position;
             } else {
                 break;
             }
         }
 
-        mainBoard.SetPiece(trackingPiece);
+        mainBoard.setObject(trackingPiece);
     }
 
     private void Set()
