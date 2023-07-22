@@ -49,6 +49,7 @@ public class Player : TileObject
 
         bool valid = board.IsValidPositionObject(this, newPosition);
 
+        // Only save the movement if the new position is valid
         if (valid)
         {
             position = newPosition;

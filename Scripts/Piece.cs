@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class Piece : TileObject
 {
+    public int objectIndex { get; set; }
     public override int objectidentifier { get => 2; }
     public float stepDelay = 1f;
     private float stepTime;

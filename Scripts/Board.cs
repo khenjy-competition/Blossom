@@ -4,7 +4,7 @@ using UnityEngine.Tilemaps;
 
 public class Board : MonoBehaviour
 {
-    private int pieceCount = 1;
+    private int pieceCount = 10;
     public Tilemap tilemap { get; private set; }
     public List<Piece> activePiece { get; private set; }
     public Player activePlayer { get; private set; }
@@ -19,8 +19,8 @@ public class Board : MonoBehaviour
     public Vector2Int boardSize;
 
     private int defaultPieceSpawnY = 20;
-    private List<Vector3Int> PiecespawnPosition = new List<Vector3Int>();
-    private Vector3Int PlayerspawnPosition = new Vector3Int(0, -10, -30);
+    private List<Vector3Int> PieceMapPosition = new List<Vector3Int>();
+    private Vector3Int PlayerMapPosition;
 
     public RectInt Bounds 
     {
@@ -37,13 +37,14 @@ public class Board : MonoBehaviour
         activePiece = new List<Piece>();
         for (int i = 0; i < pieceCount; i++)
         {
-            GameObject a = Instantiate(pieceObject);
+            GameObject a = Instantiate(pieceObject, GameObject.Find("Game Manager").transform);
             a.name = "piece" + i;
             activePiece.Add(a.GetComponent<Piece>());
-            PiecespawnPosition.Add(new Vector3Int(Random.Range(-25, 25), defaultPieceSpawnY, -21));
+            activePiece[i].objectIndex = i;
+            PieceMapPosition.Add(new Vector3Int());
         }
 
-        GameObject p = Instantiate(playerObject);
+        GameObject p = Instantiate(playerObject, GameObject.Find("Game Manager").transform);
         p.name = "player";
         activePlayer = p.GetComponent<Player>();
 
@@ -75,8 +76,8 @@ public class Board : MonoBehaviour
         int random = Random.Range(1, Squares.Length);
         SquareData data = Squares[random];
 
-        //Vector3Int spawnpos = new Vector3Int(Random.Range(-25, 25), 10, 0);
-        Vector3Int spawnpos = new Vector3Int(0, 10, 0);
+        Vector3Int spawnpos = new Vector3Int(Random.Range(-25, 25), 10, 0);
+        PieceMapPosition[piece.objectIndex] = spawnpos;
         piece.stepDelay = Random.Range(0.1f, 0.01f);
         piece.Initialize(this, spawnpos, data);
 
@@ -88,9 +89,10 @@ public class Board : MonoBehaviour
         //int random = Random.Range(0, Squares.Length);
         SquareData data = Squares[0];
 
-        player.Initialize(this, PlayerspawnPosition, data);
+        player.Initialize(this, new Vector3Int(0, -10, 0), data);
+        PlayerMapPosition = new Vector3Int(0, -10, 0);
 
-        spawnobject(player, PlayerspawnPosition);
+        spawnobject(player, new Vector3Int(0, -10, 0));
     }
 
     public void setObject(TileObject tileObject)
@@ -111,19 +113,8 @@ public class Board : MonoBehaviour
         }
     }
 
-    public bool isplayerExist(Piece piece)
-    {
-        if ((piece.position.Equals(activePlayer.position + new Vector3Int(0, 0, 0))))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
     public bool isRockBottom(Piece piece)
     {
-        Debug.Log(piece.position.y);
         if (piece.position.y <= -boardSize.y / 2)
         {
             return true;
@@ -150,6 +141,7 @@ public class Board : MonoBehaviour
             // A tile already occupies the position, thus invalid
             if (tilemap.HasTile(tilePosition))
             {
+                Debug.Log(tileObject.objectidentifier + " " + "Collide");
                 return false;
             }
         }
